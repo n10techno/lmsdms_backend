@@ -1552,8 +1552,8 @@ class DocumentStatusHandleViewSet(viewsets.ModelViewSet):
             user = self.request.user
             document_id = request.data.get('document_id')
             status_id = request.data.get('status_id')
-            effective_date = request.data.get('effective_date')
-            revision_date = request.data.get('revision_date')
+            effective_date = request.data.get('effective_date',None)
+            revision_date = request.data.get('revision_date',None)
 
 
             if not document_id:
@@ -1610,7 +1610,8 @@ class DocumentStatusHandleViewSet(viewsets.ModelViewSet):
                 )
                 # Update the document's current status
                 document.effective_date = effective_date
-                document.revision_date = revision_date
+                if revision_date:
+                    document.revision_date = revision_date
                 document.document_current_status = status_release
                 document.save()
                 user_department = document.user.department
