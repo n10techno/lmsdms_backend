@@ -959,7 +959,20 @@ class DocAdminAllUserListViewSet(viewsets.ReadOnlyModelViewSet):
             })
 
         
+import requests
+
+class FetchApiDataView(APIView):
+    def get(self, request, *args, **kwargs):
+        url = "http://192.168.1.161/cosec/api.svc/v2/template-data?action=get;Id=108;FORMAT=JSON"
+        try:
+            response = requests.get(url)
+            print(response,"=================")
+
+            response.raise_for_status()
+            return Response(response.json(), status=status.HTTP_200_OK)
         
+        except requests.exceptions.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         
         

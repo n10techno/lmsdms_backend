@@ -3411,6 +3411,18 @@ class ArchivedDocumentViewSet(viewsets.ModelViewSet):
 
         return Response({'status': False,'message': 'Document not found.','data': {}})
 
+class GetArchivedDocumentsViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Archived.objects.all()
+    serializer_class = ArchivedSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        serializer = self.get_serializer(queryset, many=True, context={'request': request})
+        data = serializer.data
+        return Response({"status": True,"message": "Documents fetched successfully","data": data})
+    
 class UpdateDocumentUserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Archived.objects.all()

@@ -1356,13 +1356,13 @@ class TrainingMaterialUpdateViewSet(viewsets.ModelViewSet):
             except TrainingMaterial.DoesNotExist:
                 return Response({"status": False, "message": "Training material not found", "data": []})
 
-            section_id = request.data.get('section_id', None)
-            if section_id:
-                try:
-                    section = TrainingSection.objects.get(id=section_id)
-                    training_material.section = section
-                except TrainingSection.DoesNotExist:
-                    return Response({"status": False, "message": "Section not found", "data": []})
+            # section_id = request.data.get('section_id', None)
+            # if section_id:
+            #     try:
+            #         section = TrainingSection.objects.get(id=section_id)
+            #         training_material.section = section
+            #     except TrainingSection.DoesNotExist:
+            #         return Response({"status": False, "message": "Section not found", "data": []})
 
             material_title = request.data.get('material_title', training_material.material_title)
             material_type = request.data.get('material_type', training_material.material_type)
@@ -1437,6 +1437,8 @@ class TrainingQuestionCreateViewSet(viewsets.ModelViewSet):
             options = request.data.get('options', [])
             correct_answer = request.data.get('correct_answer')
             marks = request.data.get('marks')
+            selected_file_type = request.data.get('selected_file_type')
+            selected_file = request.FILES.get('selected_file', None)
 
             if not question_type:
                 return Response({"status": False, "message": "Question type is required", "data": []})
@@ -1454,8 +1456,7 @@ class TrainingQuestionCreateViewSet(viewsets.ModelViewSet):
 
             if question_type == 'fill_in_the_blank' and not correct_answer:
                 return Response({"status": False, "message": "Fill-in-the-blank questions must have a correct answer", "data": []})
-            selected_file_type = request.data.get('selected_file_type')
-            selected_file = request.FILES.get('selected_file', None)
+
 
             training_question = TrainingQuestions.objects.create(
                 training=training,
@@ -3105,53 +3106,53 @@ class GetNextQuestion(viewsets.ModelViewSet):
         else:
             return Response({"status": True,"message": "All questions completed.","data": []})
 
-    class GetNextQuestion(viewsets.ModelViewSet):
-        queryset = QuizSession.objects.all()
-        serializer_class = QuizSessionSerializer
-    
-        def update(self, request, *args, **kwargs):
-            session_id = self.kwargs.get('session_id')
-            quiz_session = QuizSession.objects.get(id=session_id)
-            question_id = request.data.get('question_id')
-            user_answer = request.data.get('user_answer')
-    
-            current_question = TrainingQuestions.objects.get(id=question_id)
-            correct_answer = current_question.correct_answer
-            is_correct = (user_answer == correct_answer)
-    
-            if is_correct:
-                quiz_session.score += current_question.marks
-    
-            quiz_session.current_question_index += 1
+class UpdateGetNextQuestion(viewsets.ModelViewSet):
+    queryset = QuizSession.objects.all()
+    serializer_class = QuizSessionSerializer
+
+    def update(self, request, *args, **kwargs):
+        session_id = self.kwargs.get('session_id')
+        quiz_session = QuizSession.objects.get(id=session_id)
+        question_id = request.data.get('question_id')
+        user_answer = request.data.get('user_answer')
+
+        current_question = TrainingQuestions.objects.get(id=question_id)
+        correct_answer = current_question.correct_answer
+        is_correct = (user_answer == correct_answer)
+
+        if is_correct:
+            quiz_session.score += current_question.marks
+
+        quiz_session.current_question_index += 1
+        quiz_session.save()
+
+        questions = quiz_session.quiz.questions.all()
+        if quiz_session.current_question_index >= len(questions):
+        
+            pass_criteria = quiz_session.quiz.pass_criteria
+            if quiz_session.score >= pass_criteria:
+                quiz_session.status = 'passed'  
+                
+                quiz_session.quiz.status = True
+                quiz_session.quiz.save()
+
+            elif quiz_session.attempts >= 3:
+                quiz_session.status = 'failed'
+                quiz_session.quiz.status = False 
+                quiz_session.quiz.save()
+
+            elif quiz_session.score < pass_criteria and quiz_session.attempts < 3:
+                quiz_session.status = 'try_again'  
+                quiz_session.quiz.status = True  
+                quiz_session.quiz.save()
+
+            quiz_session.completed_at = timezone.now()
             quiz_session.save()
-    
-            questions = quiz_session.quiz.questions.all()
-            if quiz_session.current_question_index >= len(questions):
-            
-                pass_criteria = quiz_session.quiz.pass_criteria
-                if quiz_session.score >= pass_criteria:
-                    quiz_session.status = 'passed'  
-                    
-                    quiz_session.quiz.status = True
-                    quiz_session.quiz.save()
-    
-                elif quiz_session.attempts >= 3:
-                    quiz_session.status = 'failed'
-                    quiz_session.quiz.status = False 
-                    quiz_session.quiz.save()
-    
-                elif quiz_session.score < pass_criteria and quiz_session.attempts < 3:
-                    quiz_session.status = 'try_again'  
-                    quiz_session.quiz.status = True  
-                    quiz_session.quiz.save()
-    
-                quiz_session.completed_at = timezone.now()
-                quiz_session.save()
-    
-            return Response({
-                "status": True,
-                "message": "Answer submitted successfully.",
-                "is_correct": is_correct,
-                "score": quiz_session.score,
-                "next_question_index": quiz_session.current_question_index
-            })
+
+        return Response({
+            "status": True,
+            "message": "Answer submitted successfully.",
+            "is_correct": is_correct,
+            "score": quiz_session.score,
+            "next_question_index": quiz_session.current_question_index
+        })

@@ -121,6 +121,7 @@ urlpatterns = [
    path('document_data_of_status_id_twelve', DocumentDataOfStatusIdTwelve.as_view({'get':'list'}),name='get_document_type_for_doc_admin'),
    path('document_data_of_status_id_thirteen', DocumentDataOfStatusIdThirteen.as_view({'get':'list'}),name='get_document_type_for_doc_admin'),
 
+   path('get_archived_documents', GetArchivedDocumentsViewSet.as_view({'get':'list'}),name='get_archived_documents'),
    path('archived_list/<int:document_id>', ArchivedDocumentViewSet.as_view({'get':'list'}),name='archived_list'),
    path('select_user_for_document/<int:document_id>', UpdateDocumentUserViewSet.as_view({'put': 'update'}),name='select_user_for_document'),
 
