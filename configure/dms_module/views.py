@@ -3458,13 +3458,14 @@ class ParentDocumentViewSet(viewsets.ModelViewSet):
         document = Document.objects.filter(id=document_id).first()
         if not document:
             return Response({"message": "Document not found"})
-        title = document.document_title
+        title = document.document_number
+        vers = document.version
 
-        title_filter = Document.objects.filter(document_title=title)
+        title_filter = Document.objects.filter(document_number=title)
         document_ids = title_filter.values_list('id', flat=True)
         # Filter queryset based on document_id
         if document_id:
-            queryset = Document.objects.filter(parent_document_id__in=document_ids).order_by('id')
+            queryset = Document.objects.filter(parent_document_id__in=document_ids, version__lt=vers).order_by('id')
         else:
             queryset = Document.objects.none()  
 
@@ -3844,7 +3845,7 @@ class DocumentCertificatePdfExportView(viewsets.ViewSet):
             actions.append(author_action)
     
         # 2️⃣ Get all Reviewer actions (Multiple reviewers can exist)
-        reviewer_actions = DocumentReviewerAction.objects.filter(document=document).order_by('created_at')
+        reviewer_actions = DocumentReviewerAction.objects.filter(document=document).order_by('-created_at')
         unique_users = OrderedDict()
         for action in reviewer_actions:
             if action.user_id not in unique_users:
@@ -5120,7 +5121,7 @@ class EmployeeTrainingNeedIdentyView(viewsets.ViewSet):
             print(user_job_roles, "fffffffffffff")
             trainings = Document.objects.filter(job_roles__in=user_job_roles).distinct()
             print(trainings, "fffffffffffff")
-            failed_quiz_sessions = AttemptedQuiz.objects.filter(user=employee, is_pass=False)
+            failed_quiz_sessions = AttemptedQuiz.objects.filter(user=employee)
             # if not failed_quiz_sessions.exists():
             #     return Response({"status": True, "message": "User has passed all quizzes"})
             print(failed_quiz_sessions,"gggggggggggggg")
